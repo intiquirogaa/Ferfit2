@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Circle, Dumbbell, Clock, Weight } from "lucide-react";
+import { exerciseTranslations } from "@/lib/exerciseTranslations";
 
 interface Exercise {
   id: number;
@@ -20,6 +21,8 @@ interface Exercise {
   notes?: string;
   isCompleted: boolean;
   gifUrl?: string;
+  instructions?: string;
+  tips?: string;
 }
 
 interface Props {
@@ -135,6 +138,20 @@ export default function ExerciseChecklist({ exercises, onExerciseUpdate, onExerc
                       alt={exerciseTranslations[exercise.name] ?? exercise.name}
                       className="w-full h-48 object-cover rounded-lg bg-muted"
                     />
+                  </div>
+                )}
+                
+                {exercise.instructions && (
+                  <div className="mb-4 text-sm text-foreground space-y-1">
+                    <strong className="text-accent">Instrucciones:</strong>
+                    <p className="text-muted-foreground whitespace-pre-line">{exercise.instructions}</p>
+                  </div>
+                )}
+
+                {exercise.tips && (
+                  <div className="mb-4 text-sm text-foreground space-y-1">
+                    <strong className="text-accent">Tips:</strong>
+                    <p className="text-muted-foreground whitespace-pre-line">{exercise.tips}</p>
                   </div>
                 )}
 

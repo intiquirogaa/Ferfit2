@@ -87,3 +87,27 @@ export const exerciseHistory = mysqlTable("exercise_history", {
 
 export type ExerciseHistory = typeof exerciseHistory.$inferSelect;
 export type InsertExerciseHistory = typeof exerciseHistory.$inferInsert;
+
+export const achievements = mysqlTable("achievements", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  icon: varchar("icon", { length: 50 }).notNull(),
+  conditionType: varchar("conditionType", { length: 50 }).notNull(), // 'total_xp', 'streak_days', 'workouts_done', 'series_completed'
+  conditionValue: int("conditionValue").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Achievement = typeof achievements.$inferSelect;
+export type InsertAchievement = typeof achievements.$inferInsert;
+
+export const userAchievements = mysqlTable("user_achievements", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  achievementId: int("achievementId").notNull(),
+  unlockedAt: timestamp("unlockedAt").defaultNow().notNull(),
+});
+
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserAchievement = typeof userAchievements.$inferInsert;
+

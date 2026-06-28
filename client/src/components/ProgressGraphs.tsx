@@ -2,6 +2,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Weight, Zap, Clock } from "lucide-react";
+import { exerciseTranslations } from "@/lib/exerciseTranslations";
 
 interface ProgressData {
   date: string;
@@ -18,10 +19,12 @@ interface Props {
 }
 
 export default function ProgressGraphs({ exerciseName, data }: Props) {
+  const translatedName = exerciseTranslations[exerciseName] ?? exerciseName;
+
   if (!data || data.length === 0) {
     return (
       <Card className="p-6 border-border/50 bg-card/50 text-center">
-        <p className="text-muted-foreground">No hay datos de progreso disponibles para {exerciseName}</p>
+        <p className="text-muted-foreground">No hay datos de progreso disponibles para {translatedName}</p>
       </Card>
     );
   }
@@ -39,7 +42,8 @@ export default function ProgressGraphs({ exerciseName, data }: Props) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4 border border-border/50 rounded-xl bg-card/30">
+      <h3 className="font-semibold text-base text-foreground">{translatedName}</h3>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {weightData.length > 0 && (
           <Card className="p-4 border-border/50">

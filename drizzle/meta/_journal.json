@@ -36,6 +36,13 @@
       "when": 1782436399305,
       "tag": "0004_black_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1782529120932,
+      "tag": "0005_little_steel_serpent",
+      "breakpoints": true
     }
   ]
 }

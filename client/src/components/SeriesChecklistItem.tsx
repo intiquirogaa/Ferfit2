@@ -3,6 +3,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Sparkles } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { exerciseTranslations } from "@/lib/exerciseTranslations";
 
 interface SeriesChecklistItemProps {
   exerciseName: string;
@@ -80,7 +81,7 @@ export default function SeriesChecklistItem({
         <p className="text-sm font-medium text-slate-200">
           Serie {seriesNumber} de {totalSeries}
         </p>
-        <p className="text-xs text-slate-400">{exerciseName}</p>
+        <p className="text-xs text-slate-400">{exerciseTranslations[exerciseName] ?? exerciseName}</p>
       </div>
 
       {checked && (

@@ -45,4 +45,45 @@ export function registerStorageProxy(app: Express) {
       res.status(502).send("Storage proxy error");
     }
   });
+
+  app.get("/api/exercise-image", async (req, res) => {
+    const exerciseId = req.query.exerciseId as string;
+    if (!exerciseId) {
+      res.status(400).send("Missing exerciseId");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://exercisedb.p.rapidapi.com/image?exerciseId=${encodeURIComponent(exerciseId)}&resolution=360`,
+        {
+          method: "GET",
+          headers: {
+            "x-rapidapi-key": ENV.muscleWikiApiKey || "",
+            "x-rapidapi-host": "exercisedb.p.rapidapi.com",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        res.status(response.status).send("Failed to fetch image from ExerciseDB");
+        return;
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (contentType) {
+        res.set("Content-Type", contentType);
+      }
+      const cacheControl = response.headers.get("cache-control");
+      if (cacheControl) {
+        res.set("Cache-Control", cacheControl);
+      }
+
+      const buffer = await response.arrayBuffer();
+      res.send(Buffer.from(buffer));
+    } catch (err) {
+      console.error("[ExerciseImageProxy] failed:", err);
+      res.status(502).send("Exercise image proxy error");
+    }
+  });
 }

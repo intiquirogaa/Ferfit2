@@ -13,21 +13,28 @@ export interface ExerciseMedia {
 export async function getExerciseMediaUrl(
   exerciseName: string
 ): Promise<ExerciseMedia | null> {
+
+     console.log("Entró a getExerciseMediaUrl");
+
   try {
+     console.log("Ejercicio recibido:", exerciseName);
+
     if (!exerciseName) {
+       console.log("Sin nombre");
       return null;
     }
 
-    const normalizedName = exerciseName.toLowerCase().trim();
-
+   console.log("API KEY:", ENV.muscleWikiApiKey);
+  const normalizedName = exerciseName.toLowerCase().trim();
+  console.log("Antes del fetch");
     // ExerciseDB RapidAPI endpoint: search by name
     const response = await fetch(
-      `https://exercise-db-fitness-workout-gym.p.rapidapi.com/search?q=${encodeURIComponent(normalizedName)}&limit=1`,
+      `https://exercisedb.p.rapidapi.com/exercises/name/${encodeURIComponent(normalizedName)}?limit=1`,
       {
         method: "GET",
         headers: {
           "x-rapidapi-key": ENV.muscleWikiApiKey || "",
-          "x-rapidapi-host": "exercise-db-fitness-workout-gym.p.rapidapi.com",
+         "x-rapidapi-host": "exercisedb.p.rapidapi.com",
           "Content-Type": "application/json",
         },
       }
@@ -41,10 +48,17 @@ export async function getExerciseMediaUrl(
     }
 
     const data = await response.json();
+    console.log(data);
 
     if (Array.isArray(data) && data.length > 0) {
       const exercise = data[0];
-      if (exercise.gifUrl) {
+      if (exercise.id) {
+        return {
+          type: "image",
+          url: `/api/exercise-image?exerciseId=${encodeURIComponent(exercise.id)}`,
+          exerciseName: exercise.name,
+        };
+      } else if (exercise.gifUrl) {
         return {
           type: "image",
           url: exercise.gifUrl,

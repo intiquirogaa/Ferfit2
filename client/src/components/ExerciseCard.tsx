@@ -32,10 +32,9 @@ export  function ExerciseCard({ exercise }: { exercise: Exercise }) {
     <Card className="overflow-hidden">
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
-
-         <CardTitle className="text-lg text-red-500">
-  PRUEBA
-</CardTitle>
+          <CardTitle className="text-lg font-bold text-foreground">
+            {exerciseTranslations[exercise.name] ?? exercise.name}
+          </CardTitle>
 
           <Badge variant="default" className="shrink-0">
             {exercise.sets} × {exercise.reps}
@@ -97,7 +96,7 @@ export  function ExerciseCard({ exercise }: { exercise: Exercise }) {
                   <strong>Alternativas:</strong>
                   <ul className="list-disc pl-5 text-muted-foreground">
                     {exercise.alternatives.map((alt, i) => (
-                      <li key={i}>{alt}</li>
+                      <li key={i}>{exerciseTranslations[alt] ?? alt}</li>
                     ))}
                   </ul>
                 </div>

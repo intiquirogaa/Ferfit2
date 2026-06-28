@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, trainingPlans, dailyChecklists, userProgress, exerciseHistory, InsertExerciseHistory } from "../drizzle/schema";
+import { InsertUser, users, trainingPlans, dailyChecklists, userProgress, exerciseHistory, InsertExerciseHistory, achievements, userAchievements } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -299,3 +299,84 @@ export async function getDayDetails(userId: number, date: Date) {
     return null;
   }
 }
+
+/* ─── ACHIEVEMENTS ───────────────────────────────────────── */
+
+export async function getAchievements() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(achievements);
+}
+
+export async function getUserAchievements(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(userAchievements).where(eq(userAchievements.userId, userId));
+}
+
+export async function unlockAchievement(userId: number, achievementId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(userAchievements).values({
+    userId,
+    achievementId,
+    unlockedAt: new Date(),
+  });
+}
+
+export async function checkAndUnlockAchievements(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  // 1. Obtener progreso actual
+  const progress = await db.select().from(userProgress).where(eq(userProgress.userId, userId)).limit(1);
+  if (progress.length === 0) return [];
+  const p = progress[0];
+
+  // 2. Obtener total de entrenamientos completados
+  const completedChecklists = await db
+    .select()
+    .from(dailyChecklists)
+    .where(and(eq(dailyChecklists.userId, userId), eq(dailyChecklists.isCompleted, 1)));
+  const workoutsDone = completedChecklists.length;
+
+  const stats = {
+    total_xp: p.totalXP,
+    streak_days: p.streak,
+    series_completed: p.seriesCompletedHistorically,
+    workouts_done: workoutsDone,
+  };
+
+  // 3. Obtener todos los logros y los desbloqueados
+  const allAchievements = await db.select().from(achievements);
+  const unlocked = await db.select().from(userAchievements).where(eq(userAchievements.userId, userId));
+  const unlockedIds = new Set(unlocked.map(u => u.achievementId));
+
+  const newlyUnlocked = [];
+
+  for (const ach of allAchievements) {
+    if (!unlockedIds.has(ach.id)) {
+      const type = ach.conditionType as keyof typeof stats;
+      const value = stats[type];
+      if (value !== undefined && value >= ach.conditionValue) {
+        // Desbloquear logro
+        await db.insert(userAchievements).values({
+          userId,
+          achievementId: ach.id,
+          unlockedAt: new Date(),
+        });
+        newlyUnlocked.push(ach);
+      }
+    }
+  }
+
+  return newlyUnlocked;
+}
+
+export async function getUserChecklists(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(dailyChecklists).where(eq(dailyChecklists.userId, userId));
+}
+
+

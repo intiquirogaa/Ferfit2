@@ -5,7 +5,8 @@ import { TrainingPlanSelector } from "@/components/TrainingPlanSelector";
 import GeneratedTrainingPlanView from "@/components/GeneratedTrainingPlanView";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Dumbbell, Zap } from "lucide-react";
+import { Plus, Dumbbell, Zap, Download } from "lucide-react";
+import { toast } from "sonner";
 import type { GeneratedTrainingAndNutritionPlan } from "@/types";
 
 export default function Entrenamiento() {
@@ -26,17 +27,35 @@ export default function Entrenamiento() {
     utils.training.getUserProgress.invalidate();
   };
 
+  const handleDownloadPDF = async () => {
+    if (!generatedPlan) return;
+    try {
+      const { exportTrainingAndNutritionPlanToPDF } = await import("@/lib/exportPDF");
+      await exportTrainingAndNutritionPlanToPDF(generatedPlan);
+      toast.success("PDF descargado exitosamente");
+    } catch {
+      toast.error("Error al descargar PDF");
+    }
+  };
+
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
+          <div className="text-left">
             <h1 className="font-display text-3xl font-bold text-foreground">Entrenamiento</h1>
             <p className="text-muted-foreground mt-1">Tu plan de entrenamiento personalizado</p>
           </div>
-          <Button onClick={() => setWizardOpen(true)} className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
-            <Plus className="w-4 h-4" /> {hasPlan ? "Nuevo plan" : "Crear plan"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={() => setWizardOpen(true)} className="bg-accent text-accent-foreground hover:bg-accent/90 gap-2 font-semibold">
+              <Plus className="w-4 h-4" /> {hasPlan ? "Nuevo plan" : "Crear plan"}
+            </Button>
+            {hasPlan && generatedPlan && (
+              <Button onClick={handleDownloadPDF} variant="outline" className="border-border/50 gap-2 bg-muted/20 hover:bg-muted/30">
+                <Download className="w-4 h-4" /> Descargar PDF
+              </Button>
+            )}
+          </div>
         </div>
 
         {isLoading && (

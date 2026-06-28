@@ -44,11 +44,14 @@ const trpcClient = trpc.createClient({
       transformer: superjson,
       async headers() {
         // Get Clerk session token from localStorage if available
+            console.log("ENVIANDO AUTHORIZATION");
         try {
           const clerkSession = localStorage.getItem("clerk-session");
           if (clerkSession) {
             return { Authorization: `Bearer ${clerkSession}` };
           }
+         console.log("NO HAY TOKEN");
+
         } catch {
           // localStorage unavailable
         }
