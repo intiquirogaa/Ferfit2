@@ -16,16 +16,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Dumbbell, Apple, TrendingUp } from "lucide-react";
+import { LayoutDashboard, LogOut, PanelLeft, Dumbbell, Apple, TrendingUp, History } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -36,15 +33,12 @@ const menuItems = [
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
-const MIN_WIDTH = 200;
-const MAX_WIDTH = 480;
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-
   const MIN_WIDTH = 240;
   const MAX_WIDTH = 360;
 
@@ -54,7 +48,6 @@ export default function DashboardLayout({
     const parsed = parseInt(saved, 10);
     return isNaN(parsed) ? DEFAULT_WIDTH : Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, parsed));
   });
-  const { user, isLoaded } = useUser();
 
   useEffect(() => {
     const width = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, sidebarWidth));
@@ -70,8 +63,10 @@ export default function DashboardLayout({
         } as CSSProperties
       }
     >
-      <DashboardLayoutContent setSidebarWidth={(Width)=>
-        setSidebarWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Width)))} sidebarWidth={sidebarWidth}>
+      <DashboardLayoutContent
+        setSidebarWidth={(width) => setSidebarWidth(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, width)))}
+        sidebarWidth={sidebarWidth}
+      >
         {children}
       </DashboardLayoutContent>
     </SidebarProvider>
@@ -96,7 +91,6 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
 
   useEffect(() => {
@@ -111,7 +105,7 @@ function DashboardLayoutContent({
 
       const sidebarLeft = sidebarRef.current?.getBoundingClientRect().left ?? 0;
       const newWidth = e.clientX - sidebarLeft;
-      if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
+      if (newWidth >= 240 && newWidth <= 360) {
         setSidebarWidth(newWidth);
       }
     };
@@ -139,22 +133,20 @@ function DashboardLayoutContent({
     <>
       <Sidebar
         ref={sidebarRef}
-        collapsible={isMobile ? "offcanvas" : "icon"}
-        className="border-r-0"
+        collapsible="icon"
+        className="hidden md:flex border-r-0"
         disableTransition={isResizing}
       >
         <SidebarHeader className="border-b border-border/50 px-4 py-5">
-          <div className="flex items-center justify-between">
-            {!isCollapsed && (
-              <div className="space-y-1">
-                <h1 className="text-2xl font-bold tracking-tight">
-                  Fer<span className="text-primary">Fit</span>
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  AI Fitness Platform
-                </p>
-              </div>
-            )}
+          <div className="flex items-center justify-between group-data-[collapsible=icon]:justify-center w-full">
+            <div className="space-y-1 group-data-[collapsible=icon]:hidden">
+              <h1 className="text-2xl font-bold tracking-tight">
+                Fer<span className="text-primary">Fit</span>
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                AI Fitness Platform
+              </p>
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -171,7 +163,7 @@ function DashboardLayoutContent({
             {menuItems.map(item => {
               const isActive = location === item.path;
               return (
-                <SidebarMenuItem key={item.path}>
+                <SidebarMenuItem key={item.label}>
                   <SidebarMenuButton
                     isActive={isActive}
                     onClick={() => setLocation(item.path)}
@@ -183,7 +175,7 @@ function DashboardLayoutContent({
                     <item.icon
                       className={`h-4 w-4 ${isActive ? "text-primary" : ""}`}
                     />
-                    <span>{item.label}</span>
+                    <span className="group-data-[collapsible=icon]:hidden">{item.label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );
@@ -223,24 +215,81 @@ function DashboardLayoutContent({
         </SidebarFooter>
       </Sidebar>
 
-
-      <SidebarInset>
-        {isMobile && (
-          <div className="flex border-b h-14 items-center justify-between bg-background/95 px-2 backdrop-blur supports-[backdrop-filter]:backdrop-blur sticky top-0 z-40">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger className="h-9 w-9 rounded-lg bg-background" />
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="tracking-tight text-foreground">
-                    {activeMenuItem?.label ?? "Menu"}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        <main className="flex-1 p-6 md:pl-0">{children}</main>
+      <SidebarInset className="w-full">
+        <main className="flex-1 p-4 md:p-6 md:pl-0 pb-24 md:pb-6">{children}</main>
       </SidebarInset>
+
+      {/* Bottom Navigation for Mobile */}
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 h-16 bg-background/95 border-t border-border/50 backdrop-blur supports-[backdrop-filter]:backdrop-blur flex items-center justify-around px-2 z-50 pb-safe">
+          {/* Dashboard */}
+          <button
+            onClick={() => setLocation("/dashboard")}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 h-full text-center transition-all ${
+              location === "/dashboard" ? "text-accent" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutDashboard className="h-5 w-5" />
+            <span className="text-[10px] font-medium tracking-tight">Dashboard</span>
+          </button>
+
+          {/* Entrenamiento */}
+          <button
+            onClick={() => setLocation("/entrenamiento")}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 h-full text-center transition-all ${
+              location === "/entrenamiento" ? "text-accent" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Dumbbell className="h-5 w-5" />
+            <span className="text-[10px] font-medium tracking-tight">Entrenamiento</span>
+          </button>
+
+          {/* Nutrición */}
+          <button
+            onClick={() => setLocation("/nutricion")}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 h-full text-center transition-all ${
+              location === "/nutricion" ? "text-accent" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Apple className="h-5 w-5" />
+            <span className="text-[10px] font-medium tracking-tight">Nutrición</span>
+          </button>
+
+          {/* Progreso */}
+          <button
+            onClick={() => setLocation("/progreso")}
+            className={`flex flex-col items-center justify-center gap-1 flex-1 h-full text-center transition-all ${
+              location === "/progreso" ? "text-accent" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <TrendingUp className="h-5 w-5" />
+            <span className="text-[10px] font-medium tracking-tight">Progreso</span>
+          </button>
+
+          {/* Avatar / Cerrar Sesión */}
+          <button
+            onClick={() => {
+              if (confirm("¿Estás seguro de que deseas cerrar sesión?")) {
+                signOut();
+              }
+            }}
+            className="flex flex-col items-center justify-center gap-1 flex-1 h-full text-center text-muted-foreground hover:text-foreground transition-all"
+          >
+            <div className="w-5 h-5 rounded-full border border-border/60 overflow-hidden flex items-center justify-center bg-muted/30">
+              {user?.imageUrl ? (
+                <img src={user.imageUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <Avatar className="h-full w-full">
+                  <AvatarFallback className="text-[10px] font-bold">
+                    {(user?.firstName || user?.username || "U")?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+            <span className="text-[10px] font-medium tracking-tight">Salir</span>
+          </button>
+        </div>
+      )}
     </>
   );
 }

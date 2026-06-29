@@ -148,7 +148,7 @@ export const appRouter = router({
         .from(dailyChecklists)
         .where(eq(dailyChecklists.userId, ctx.user.id));
       
-      const totalWorkoutsCompleted = checklists.filter(c => c.isCompleted === 1).length;
+      const totalWorkoutsCompleted = checklists.filter((c: any) => c.isCompleted === 1).length;
 
       const plans = await database
         .select()
@@ -534,8 +534,8 @@ export const appRouter = router({
 
           // Recent workouts: last 3 completed checklists
           const completed = allChecklists
-            .filter(c => c.isCompleted === 1)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+            .filter((c: any) => c.isCompleted === 1)
+            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime())
             .slice(0, 3);
 
           const plan = await db.getActiveTrainingPlan(ctx.user.id);
@@ -544,7 +544,7 @@ export const appRouter = router({
             try { planContent = JSON.parse(plan.generatedContent); } catch {}
           }
 
-          const recentWorkouts = completed.map((c, i) => {
+          const recentWorkouts = completed.map((c: any, i: number) => {
             const daysAgo = Math.floor((now.getTime() - new Date(c.date).getTime()) / (1000 * 60 * 60 * 24));
             const dayLabel = daysAgo === 0 ? "Hoy" : daysAgo === 1 ? "Ayer" : `Hace ${daysAgo} días`;
             const dayIndex = (new Date(c.date).getDay() + 6) % 7;
@@ -563,7 +563,7 @@ export const appRouter = router({
 
           // Activity feed: up to 3 milestone items
           const progress = await db.getUserProgress(ctx.user.id);
-          const totalWorkouts = allChecklists.filter(c => c.isCompleted === 1).length;
+          const totalWorkouts = allChecklists.filter((c: any) => c.isCompleted === 1).length;
           const activityItems: { icon: string; title: string; description: string; time: string }[] = [];
 
           if (progress) {
@@ -604,7 +604,7 @@ export const appRouter = router({
           const progress = await db.getUserProgress(ctx.user.id);
           const allChecklists = await db.getUserChecklists(ctx.user.id);
           const plan = await db.getActiveTrainingPlan(ctx.user.id);
-          const totalWorkouts = allChecklists.filter(c => c.isCompleted === 1).length;
+          const totalWorkouts = allChecklists.filter((c: any) => c.isCompleted === 1).length;
 
           let planContent: any = null;
           if (plan?.generatedContent) {

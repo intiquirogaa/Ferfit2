@@ -3,16 +3,44 @@ import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, trainingPlans, dailyChecklists, userProgress, exerciseHistory, InsertExerciseHistory, achievements, userAchievements } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
-let _db: ReturnType<typeof drizzle> | null = null;
+import mysql from "mysql2/promise";
+
+let _db: any = null;
+let _pool: mysql.Pool | null = null;
+
+async function seedAchievements(db: any) {
+  try {
+    const existing = await db.select().from(achievements).limit(1);
+    if (existing.length === 0) {
+      console.log("Seeding default achievements...");
+      await db.insert(achievements).values([
+        { name: "Primer Paso", description: "Completa tu primera serie", icon: "zap", conditionType: "series_completed", conditionValue: 1 },
+        { name: "Constancia Inicial", description: "Alcanza una racha de 3 días", icon: "flame", conditionType: "streak_days", conditionValue: 3 },
+        { name: "Guerrero de Hierro", description: "Completa 10 entrenamientos", icon: "dumbbell", conditionType: "workouts_done", conditionValue: 10 },
+        { name: "Acumulador de XP", description: "Consigue 1000 XP total", icon: "trophy", conditionType: "total_xp", conditionValue: 1000 },
+      ]);
+      console.log("Achievements seeded successfully!");
+    }
+  } catch (error) {
+    console.warn("Could not seed achievements (table might not exist yet):", error);
+  }
+}
 
 export async function getDb() {
-
-  console.log("DATABASE_URL =", process.env.DATABASE_URL);
-
   if (!_db && process.env.DATABASE_URL) {
-    console.log("Conectando...");
-      _db = drizzle(process.env.DATABASE_URL);
-    }
+    console.log("Conectando con pool robusto...");
+    _pool = mysql.createPool({
+      uri: process.env.DATABASE_URL,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 10000,
+    });
+    _db = drizzle(_pool);
+    // Seed achievements asynchronously
+    seedAchievements(_db).catch(console.error);
+  }
   return _db;
 }
 
@@ -253,7 +281,7 @@ export async function getCompletedDates(userId: number): Promise<Date[]> {
       .where(and(eq(dailyChecklists.userId, userId), eq(dailyChecklists.isCompleted, 1)))
       .orderBy(dailyChecklists.date);
     
-    return result.map(r => new Date(r.date));
+    return result.map((r: { date: Date | string | number }) => new Date(r.date));
   } catch (error) {
     console.error("[Database] Failed to get completed dates:", error);
     return [];
@@ -274,7 +302,7 @@ export async function getDayDetails(userId: number, date: Date) {
       .from(dailyChecklists)
       .where(eq(dailyChecklists.userId, userId));
 
-    const checklist = allChecklists.find(c => {
+    const checklist = allChecklists.find((c: any) => {
       const checklistDate = new Date(c.date);
       checklistDate.setHours(0, 0, 0, 0);
       return checklistDate.getTime() === startOfDay.getTime();
@@ -328,49 +356,54 @@ export async function checkAndUnlockAchievements(userId: number) {
   const db = await getDb();
   if (!db) return [];
 
-  // 1. Obtener progreso actual
-  const progress = await db.select().from(userProgress).where(eq(userProgress.userId, userId)).limit(1);
-  if (progress.length === 0) return [];
-  const p = progress[0];
+  try {
+    // 1. Obtener progreso actual
+    const progress = await db.select().from(userProgress).where(eq(userProgress.userId, userId)).limit(1);
+    if (progress.length === 0) return [];
+    const p = progress[0];
 
-  // 2. Obtener total de entrenamientos completados
-  const completedChecklists = await db
-    .select()
-    .from(dailyChecklists)
-    .where(and(eq(dailyChecklists.userId, userId), eq(dailyChecklists.isCompleted, 1)));
-  const workoutsDone = completedChecklists.length;
+    // 2. Obtener total de entrenamientos completados
+    const completedChecklists = await db
+      .select()
+      .from(dailyChecklists)
+      .where(and(eq(dailyChecklists.userId, userId), eq(dailyChecklists.isCompleted, 1)));
+    const workoutsDone = completedChecklists.length;
 
-  const stats = {
-    total_xp: p.totalXP,
-    streak_days: p.streak,
-    series_completed: p.seriesCompletedHistorically,
-    workouts_done: workoutsDone,
-  };
+    const stats = {
+      total_xp: p.totalXP,
+      streak_days: p.streak,
+      series_completed: p.seriesCompletedHistorically,
+      workouts_done: workoutsDone,
+    };
 
-  // 3. Obtener todos los logros y los desbloqueados
-  const allAchievements = await db.select().from(achievements);
-  const unlocked = await db.select().from(userAchievements).where(eq(userAchievements.userId, userId));
-  const unlockedIds = new Set(unlocked.map(u => u.achievementId));
+    // 3. Obtener todos los logros y los desbloqueados
+    const allAchievements = await db.select().from(achievements);
+    const unlocked = await db.select().from(userAchievements).where(eq(userAchievements.userId, userId));
+    const unlockedIds = new Set(unlocked.map((u: any) => u.achievementId));
 
-  const newlyUnlocked = [];
+    const newlyUnlocked = [];
 
-  for (const ach of allAchievements) {
-    if (!unlockedIds.has(ach.id)) {
-      const type = ach.conditionType as keyof typeof stats;
-      const value = stats[type];
-      if (value !== undefined && value >= ach.conditionValue) {
-        // Desbloquear logro
-        await db.insert(userAchievements).values({
-          userId,
-          achievementId: ach.id,
-          unlockedAt: new Date(),
-        });
-        newlyUnlocked.push(ach);
+    for (const ach of allAchievements) {
+      if (!unlockedIds.has(ach.id)) {
+        const type = ach.conditionType as keyof typeof stats;
+        const value = stats[type];
+        if (value !== undefined && value >= ach.conditionValue) {
+          // Desbloquear logro
+          await db.insert(userAchievements).values({
+            userId,
+            achievementId: ach.id,
+            unlockedAt: new Date(),
+          });
+          newlyUnlocked.push(ach);
+        }
       }
     }
-  }
 
-  return newlyUnlocked;
+    return newlyUnlocked;
+  } catch (error) {
+    console.error("[Achievements] Error checking achievements, skipping:", error);
+    return [];
+  }
 }
 
 export async function getUserChecklists(userId: number) {
