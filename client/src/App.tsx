@@ -65,9 +65,7 @@ function AuthenticatedRoute({ component: Component }: { component: React.Compone
   }
 
   return (
-    <DashboardLayout>
       <Component />
-    </DashboardLayout>
   );
 }
 
